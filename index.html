@@ -683,7 +683,7 @@ async function loadModel(payload, id) {
     self.postMessage({ type: 'status', kind: 'warn', text: '모델 다운로드 중...' });
 
     pipe = await pipeline('text-generation', payload.modelId, {
-      dtype: 'q4',
+      dtype: 'q4f32',
       device: 'wasm',
       progress_callback: (() => {
         // 파일별 loaded/total 바이트를 추적 → 전체 합산으로 정확한 % 계산
@@ -1000,7 +1000,7 @@ const state = {
   _engineReady: null,
   modelProgress: { percent: 0, stage: 'idle' },
   model: {
-    id: 'onnx-community/Llama-3.2-1B-Instruct',
+    id: 'onnx-community/gemma-3-1b-it-ONNX',
     label: 'Llama 3.2 1B',
     ready: false,
     loading: false,
