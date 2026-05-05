@@ -683,7 +683,7 @@ async function loadModel(payload, id) {
     self.postMessage({ type: 'status', kind: 'warn', text: '모델 다운로드 중...' });
 
     pipe = await pipeline('text-generation', payload.modelId, {
-      dtype: 'q4f16',
+      dtype: 'q8f16',
       device: 'wasm',
       progress_callback: (() => {
         // 파일별 loaded/total 바이트를 추적 → 전체 합산으로 정확한 % 계산
