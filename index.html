@@ -665,17 +665,17 @@ input::placeholder { color: var(--muted); }
 </style>
 
 <!-- Worker 소스: type=text/js-worker 로 실행 방지, JS에서 텍스트로 읽어 Blob Worker 생성 -->
-<script id="worker-src" type="text/js-worker">
-// ── Basenote Inference Worker ──
-// classic Worker이므로 동적 import() 사용 가능 (최신 브라우저 지원)
-let pipe = null;
+// ── Worker 생성 (Module Worker + Blob URL) ────────────
+// top-level import() 사용을 위해 type: 'module' 필수
 
-async function loadModel(payload, id) {
-  try {
-    self.postMessage({ type: 'status', kind: 'warn', text: '라이브러리 로딩 중...' });
+function getWorker() {
+  if (_worker) return _worker;
 
-    const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js');
-    const { pipeline, env } = mod;
+  const workerCode = document.getElementById('worker-src').textContent;
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const url  = URL.createObjectURL(blob);
+  // ★ type: 'module' 로 생성 — top-level import 지원
+  _worker = new Worker(url, { type: 'module' });
     env.allowRemoteModels = true;
     // ★ 싱글스레드 강제 → SharedArrayBuffer 불필요 → 안드로이드 크롬 호환
     env.backends.onnx.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 4, 4);
