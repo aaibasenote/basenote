@@ -664,20 +664,18 @@ input::placeholder { color: var(--muted); }
 .status-pill.warn .status-dot { background: var(--warn); }
 </style>
 
-<!-- Worker 소스: type=text/js-worker 로 실행 방지, JS에서 텍스트로 읽어 Blob Worker 생성 -->
-// ── Worker 생성 (Module Worker + Blob URL) ────────────
-// top-level import() 사용을 위해 type: 'module' 필수
+<!-- Worker 소스: type=module Worker로 생성, top-level import 사용 -->
+<script id="worker-src" type="text/js-worker">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js';
 
-function getWorker() {
-  if (_worker) return _worker;
+// ── Basenote Inference Worker ──
+let pipe = null;
 
-  const workerCode = document.getElementById('worker-src').textContent;
-  const blob = new Blob([workerCode], { type: 'application/javascript' });
-  const url  = URL.createObjectURL(blob);
-  // ★ type: 'module' 로 생성 — top-level import 지원
-  _worker = new Worker(url, { type: 'module' });
+async function loadModel(payload, id) {
+  try {
+    self.postMessage({ type: 'status', kind: 'warn', text: '라이브러리 로딩 중...' });
+
     env.allowRemoteModels = true;
-    // ★ 싱글스레드 강제 → SharedArrayBuffer 불필요 → 안드로이드 크롬 호환
     env.backends.onnx.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 4, 4);
 
     self.postMessage({ type: 'status', kind: 'warn', text: '모델 다운로드 중...' });
@@ -1109,9 +1107,8 @@ function getErrorMessage(error) {
   return String(error);
 }
 
-// ── Worker 생성 (classic Worker + Blob URL) ────────────
-// <script id="worker-src" type="text/js-worker"> 태그에서 소스 읽기
-// type: 'module' 제거 → Blob origin 에서 import() CORS 문제 해결
+// ── Worker 생성 (Module Worker + Blob URL) ────────────
+// top-level import 사용을 위해 type: 'module' 필수
 let _worker = null;
 let _workerReady = null;
 const _pending = new Map();
@@ -1123,8 +1120,7 @@ function getWorker() {
   const workerCode = document.getElementById('worker-src').textContent;
   const blob = new Blob([workerCode], { type: 'application/javascript' });
   const url  = URL.createObjectURL(blob);
-  // ★ type: 'module' 없이 classic Worker 로 생성 — import() 는 내부에서 동적으로 사용
-  _worker = new Worker(url);
+  _worker = new Worker(url, { type: 'module' });
 
   _worker.onmessage = (e) => {
     const { type, kind, text, id, output, error } = e.data;
